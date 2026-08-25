@@ -1429,3 +1429,37 @@ def test_sidebar_secondary_templates_all_empty(sphinx_build_factory) -> None:
     # Hence the secondary sidebar has all its templates empty and should be removed
     sphinx_build = sphinx_build_factory("base", confoverrides=confoverrides).build()
     assert not sphinx_build.html_tree("page1.html").select("div.bd-sidebar-secondary")
+
+
+def test_sidebar_breakpoints_match_stylesheet() -> None:
+    """The drawer breakpoints in the JS must match the ones the SCSS uses."""
+    assets = Path(__file__).parents[1] / "src" / "pydata_sphinx_theme" / "assets"
+    layout_scss = (assets / "styles" / "variables" / "_layout.scss").read_text()
+    bootstrap_scss = (assets / "styles" / "variables" / "_bootstrap.scss").read_text()
+    theme_js = (assets / "scripts" / "pydata-sphinx-theme.js").read_text()
+
+    # e.g. "lg" from "$breakpoint-sidebar-primary: lg;"
+    def breakpoint_name(sidebar: str) -> str:
+        match = re.search(rf"\$breakpoint-sidebar-{sidebar}:\s*(\w+)", layout_scss)
+        assert match is not None, f"no $breakpoint-sidebar-{sidebar} in _layout.scss"
+        return match.group(1)
+
+    # e.g. 960 from the "lg: 960px," entry of $grid-breakpoints
+    def breakpoint_width(name: str) -> int:
+        grid = re.search(r"\$grid-breakpoints:\s*\((.*?)\)", bootstrap_scss, re.S)
+        assert grid is not None, "no $grid-breakpoints in _bootstrap.scss"
+        match = re.search(rf"\b{name}:\s*(\d+)px", grid.group(1))
+        assert match is not None, f"no {name} entry in $grid-breakpoints"
+        return int(match.group(1))
+
+    def js_width(constant: str) -> int:
+        match = re.search(rf"{constant} = (\d+);", theme_js)
+        assert match is not None, f"no {constant} in pydata-sphinx-theme.js"
+        return int(match.group(1))
+
+    assert js_width("BREAKPOINT_SIDEBAR_PRIMARY") == breakpoint_width(
+        breakpoint_name("primary")
+    )
+    assert js_width("BREAKPOINT_SIDEBAR_SECONDARY") == breakpoint_width(
+        breakpoint_name("secondary")
+    )

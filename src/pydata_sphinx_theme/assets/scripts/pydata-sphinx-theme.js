@@ -793,6 +793,28 @@ async function fetchAndUseVersions() {
 /*******************************************************************************
  * Sidebar modals (for mobile / narrow screens)
  */
+
+// These widths are also in the stylesheet, as $breakpoint-sidebar-primary
+// and $breakpoint-sidebar-secondary. Change them together.
+const BREAKPOINT_SIDEBAR_PRIMARY = 960;
+const BREAKPOINT_SIDEBAR_SECONDARY = 1200;
+
+const inFlowAbove = (breakpoint) =>
+  window.matchMedia(`(min-width: ${breakpoint}px)`);
+
+// Focusing an element normally scrolls it into view, and the header is sticky,
+// so focusing anything in it would jump the page to the top.
+const FOCUS_WITHOUT_SCROLLING = { preventScroll: true };
+
+const FOCUSABLE_SELECTOR = [
+  "a[href]",
+  "button:not([disabled])",
+  "input:not([disabled])",
+  "select:not([disabled])",
+  "textarea:not([disabled])",
+  '[tabindex]:not([tabindex="-1"])',
+].join(", ");
+
 function setupMobileSidebarKeyboardHandlers() {
   // These are the left and right sidebars for wider screens. We cut and paste
   // the content from these widescreen sidebars into the mobile dialogs, when
@@ -821,40 +843,99 @@ function setupMobileSidebarKeyboardHandlers() {
     });
   };
 
-  // Hook up the ways to open and close the dialog
-  [
-    [primaryToggle, primaryDialog, primarySidebar],
-    [secondaryToggle, secondaryDialog, secondarySidebar],
-  ].forEach(([toggleButton, dialog, sidebar]) => {
-    if (!toggleButton || !dialog || !sidebar) {
+  // A drawer is one sidebar, the dialog its content moves into while it is
+  // open, the button that opens it, and the media query that matches while
+  // that sidebar belongs in the page flow rather than in a drawer.
+  const drawers = [
+    {
+      toggleButton: primaryToggle,
+      dialog: primaryDialog,
+      sidebar: primarySidebar,
+      inFlow: inFlowAbove(BREAKPOINT_SIDEBAR_PRIMARY),
+    },
+    {
+      toggleButton: secondaryToggle,
+      dialog: secondaryDialog,
+      sidebar: secondarySidebar,
+      inFlow: inFlowAbove(BREAKPOINT_SIDEBAR_SECONDARY),
+    },
+  ].filter(
+    ({ toggleButton, dialog, sidebar }) => toggleButton && dialog && sidebar,
+  );
+
+  const isVisible = (element) =>
+    Boolean(element) && element.isConnected && element.getClientRects().length;
+
+  const anotherDrawerIsOpen = () => drawers.some(({ dialog }) => dialog.open);
+
+  // Where focus goes when a drawer closes: back to the button that opened it,
+  // or, when that button is gone because the sidebar returned to the page
+  // flow, to somewhere in the sidebar itself.
+  const focusToggleButton = ({ toggleButton }) => {
+    if (!isVisible(toggleButton)) {
+      return false;
+    }
+
+    toggleButton.focus(FOCUS_WITHOUT_SCROLLING);
+    return true;
+  };
+
+  const focusInsideSidebar = ({ sidebar }) => {
+    const target = Array.from(
+      sidebar.querySelectorAll(FOCUSABLE_SELECTOR),
+    ).find(isVisible);
+
+    if (target) {
+      target.focus(FOCUS_WITHOUT_SCROLLING);
       return;
     }
 
-    // Clicking the button can only open the sidebar, not close it.
-    // Clicking the button is also the *only* way to open the sidebar.
-    toggleButton.addEventListener("click", (event) => {
-      event.preventDefault();
-      event.stopPropagation();
+    if (isVisible(sidebar)) {
+      sidebar.tabIndex = -1;
+      sidebar.focus(FOCUS_WITHOUT_SCROLLING);
+      return;
+    }
 
-      // Save focus so we can restore it when the dialog closes
-      const previouslyFocused = document.activeElement;
+    // The page has no sidebar at this width, so the article is the nearest
+    // thing the reader can see.
+    const article = document.getElementById("main-content");
+
+    if (article) {
+      article.tabIndex = -1;
+      article.focus(FOCUS_WITHOUT_SCROLLING);
+    }
+  };
+
+  // Hook up the ways to open and close the dialog
+  drawers.forEach((drawer) => {
+    const { toggleButton, dialog, sidebar, inFlow } = drawer;
+
+    const openDrawer = () => {
+      // Two open modals would each make the other unreachable.
+      drawers.forEach((other) => {
+        if (other !== drawer && other.dialog.open) {
+          other.dialog.close();
+        }
+      });
 
       // When we open the dialog, we cut and paste the nodes and classes from
       // the widescreen sidebar into the dialog
       cutAndPasteNodesAndClasses(sidebar, dialog);
 
       dialog.showModal();
+      toggleButton.setAttribute("aria-expanded", "true");
+    };
 
-      // Restore focus when dialog closes
-      dialog.addEventListener(
-        "close",
-        () => {
-          if (previouslyFocused && previouslyFocused.focus) {
-            previouslyFocused.focus();
-          }
-        },
-        { once: true },
-      );
+    // Clicking the button is the *only* way to open the sidebar.
+    toggleButton.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      if (dialog.open) {
+        dialog.close();
+      } else {
+        openDrawer();
+      }
     });
 
     // Listen for clicks on the backdrop in order to close the dialog
@@ -871,10 +952,46 @@ function setupMobileSidebarKeyboardHandlers() {
       }
     });
 
-    // When the dialog is closed, move the nodes (and classes) back to their
-    // original place
-    dialog.addEventListener("close", () => {
+    // The sidebar is back in the page flow, so its drawer has nothing left to
+    // show. Nobody pressed anything, so this close is not animated.
+    inFlow.addEventListener("change", (event) => {
+      if (event.matches && dialog.open) {
+        // This attribute is also in _sidebar-toggle.scss, which uses it to
+        // skip the animation. Rename it in both or neither. An attribute
+        // rather than a class, because classes move between the two elements.
+        dialog.dataset.pstSkipAnimation = "";
+        dialog.close();
+      }
+    });
+
+    let latestClose = 0;
+
+    dialog.addEventListener("close", async () => {
+      const thisClose = ++latestClose;
+
+      toggleButton.setAttribute("aria-expanded", "false");
+
+      // Restore focus when dialog closes
+      const focusHandled = anotherDrawerIsOpen() || focusToggleButton(drawer);
+
+      // When the dialog is closed, move the nodes (and classes) back to their
+      // original place, once the drawer has finished leaving.
+      await Promise.allSettled(dialog.getAnimations().map((a) => a.finished));
+
+      // Another open or close overtook this one, which now owns the content.
+      if (dialog.open || thisClose !== latestClose) {
+        return;
+      }
+
       cutAndPasteNodesAndClasses(dialog, sidebar);
+
+      if (!focusHandled) {
+        focusInsideSidebar(drawer);
+      }
+
+      // Force the closed style to be computed while the marker is still set.
+      dialog.getBoundingClientRect();
+      delete dialog.dataset.pstSkipAnimation;
     });
   });
 }
