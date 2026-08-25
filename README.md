@@ -1,0 +1,47 @@
+# Repository Coverage
+
+[Full report](https://htmlpreview.github.io/?https://github.com/consideRatio/pydata-sphinx-theme/blob/python-coverage-comment-action-data/htmlcov/index.html)
+
+| Name                                      |    Stmts |     Miss |   Branch |   BrPart |   Cover |   Missing |
+|------------------------------------------ | -------: | -------: | -------: | -------: | ------: | --------: |
+| src/pydata\_sphinx\_theme/\_\_init\_\_.py |      147 |       17 |       62 |       12 |     85% |43, 52-\>60, 54, 60-\>64, 80-81, 87-88, 153, 168, 185, 188, 225-\>236, 227-\>236, 237-246, 301-302 |
+| src/pydata\_sphinx\_theme/logo.py         |       41 |        1 |       18 |        1 |     97% |        76 |
+| src/pydata\_sphinx\_theme/pygments.py     |       45 |        1 |       16 |        1 |     97% |        75 |
+| src/pydata\_sphinx\_theme/short\_link.py  |       55 |        1 |       32 |        5 |     93% |91-\>93, 96-\>123, 99-\>123, 112, 115-\>123 |
+| src/pydata\_sphinx\_theme/toctree.py      |      301 |       15 |      164 |       19 |     93% |95-98, 102-\>exit, 175, 230-231, 368-\>383, 374, 398, 415-\>413, 418, 420-\>454, 437-\>441, 487-\>485, 508, 519, 615, 618, 695, 802, 823-\>811, 830 |
+| src/pydata\_sphinx\_theme/translator.py   |       42 |       19 |       14 |        1 |     50% |42-65, 72-73, 93-95, 107-116 |
+| src/pydata\_sphinx\_theme/utils.py        |       66 |        1 |       30 |        2 |     97% |33, 79-\>exit |
+| **TOTAL**                                 |  **724** |   **55** |  **346** |   **41** | **90%** |           |
+
+1 file skipped due to complete coverage.
+
+
+## Setup coverage badge
+
+Below are examples of the badges you can use in your main branch `README` file.
+
+### Direct image
+
+[![Coverage badge](https://raw.githubusercontent.com/consideRatio/pydata-sphinx-theme/python-coverage-comment-action-data/badge.svg)](https://htmlpreview.github.io/?https://github.com/consideRatio/pydata-sphinx-theme/blob/python-coverage-comment-action-data/htmlcov/index.html)
+
+This is the one to use if your repository is private or if you don't want to customize anything.
+
+### [Shields.io](https://shields.io) Json Endpoint
+
+[![Coverage badge](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/consideRatio/pydata-sphinx-theme/python-coverage-comment-action-data/endpoint.json)](https://htmlpreview.github.io/?https://github.com/consideRatio/pydata-sphinx-theme/blob/python-coverage-comment-action-data/htmlcov/index.html)
+
+Using this one will allow you to [customize](https://shields.io/endpoint) the look of your badge.
+It won't work with private repositories. It won't be refreshed more than once per five minutes.
+
+### [Shields.io](https://shields.io) Dynamic Badge
+
+[![Coverage badge](https://img.shields.io/badge/dynamic/json?color=brightgreen&label=coverage&query=%24.message&url=https%3A%2F%2Fraw.githubusercontent.com%2FconsideRatio%2Fpydata-sphinx-theme%2Fpython-coverage-comment-action-data%2Fendpoint.json)](https://htmlpreview.github.io/?https://github.com/consideRatio/pydata-sphinx-theme/blob/python-coverage-comment-action-data/htmlcov/index.html)
+
+This one will always be the same color. It won't work for private repos. I'm not even sure why we included it.
+
+## What is that?
+
+This branch is part of the
+[python-coverage-comment-action](https://github.com/marketplace/actions/python-coverage-comment)
+GitHub Action. All the files in this branch are automatically generated and may be
+overwritten at any moment.
