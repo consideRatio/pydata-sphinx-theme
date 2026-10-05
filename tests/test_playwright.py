@@ -541,10 +541,10 @@ class TestSidebarDrawers:
         _check_test_site(self.site_name, site_path, check_dialog_slides)
 
     @pytest.mark.parametrize(
-        ("sidebar_id", "toggle_name", "crossed_viewport"),
+        ("sidebar_id", "toggle_name", "parked", "crossed_viewport"),
         [
-            ("pst-primary-sidebar", "Site navigation", MEDIUM_VIEWPORT),
-            ("pst-secondary-sidebar", "On this page", WIDE_VIEWPORT),
+            ("pst-primary-sidebar", "Site navigation", "-100%", MEDIUM_VIEWPORT),
+            ("pst-secondary-sidebar", "On this page", "100%", WIDE_VIEWPORT),
         ],
     )
     def test_drawer_closes_when_its_breakpoint_is_crossed(
@@ -554,6 +554,7 @@ class TestSidebarDrawers:
         url_base: str,
         sidebar_id: str,
         toggle_name: str,
+        parked: str,
         crossed_viewport: dict,
     ) -> None:
         """Widening past a sidebar's breakpoint must close its open drawer."""
@@ -588,7 +589,6 @@ class TestSidebarDrawers:
             )
             assert visible_animations == []
 
-            parked = "-100%" if sidebar_id == "pst-primary-sidebar" else "100%"
             assert dialog.evaluate("el => getComputedStyle(el).translate") == parked
 
             # The drawer has left the top layer, so no backdrop remains
@@ -596,12 +596,9 @@ class TestSidebarDrawers:
 
             # Wait on the sidebar filling up: the nodes move back on `close`
             expect(sidebar.locator("> *").first).to_be_attached()
-
             expect(sidebar).to_be_visible()
-            assert sidebar.locator("> *").count() > 0
 
-            assert page.locator("dialog[open]").count() == 0
-
+            # The page is no longer inert behind a modal
             header_link = page.locator(".bd-header a[href]").first
             header_link.focus()
             expect(header_link).to_be_focused()
