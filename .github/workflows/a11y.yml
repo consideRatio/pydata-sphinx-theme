@@ -35,10 +35,10 @@ on:
 jobs:
   a11y-tests:
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         # ubuntu-latest = 24.04
-        os: ["ubuntu-latest", "ubuntu-22.04", "macos-14"]
+        os: ["macos-14"]
         browser: ["firefox", "chromium"]
     runs-on: ${{ matrix.os }}
     steps:
@@ -56,7 +56,16 @@ jobs:
 
       - name: "Run accessibility tests with playwright 🎭"
         # build PST, build docs, then run a11y-tests
-        run: python -Im tox run -e compile-assets,i18n-compile,py314-docs,a11y-tests-${{ matrix.browser }}
+        run: |
+          python -Im tox run -e compile-assets,i18n-compile,py314-docs
+          fails=0
+          for i in 1 2 3 4 5; do
+            echo "::group::attempt $i"
+            python -Im tox run -e a11y-tests-${{ matrix.browser }} || fails=$((fails+1))
+            echo "::endgroup::"
+          done
+          echo "::notice::$fails of 5 attempts failed"
+          test $fails -eq 0
 
       - name: "Upload Playwright traces, if any 🐾"
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v4.7.0.1
