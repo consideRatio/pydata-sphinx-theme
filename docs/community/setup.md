@@ -193,11 +193,8 @@ $ tox run -m docs-live-server
 
 When working on the theme, making changes to any of these directories:
 
-- `src/js/index.js`
-- `src/scss/index.scss`
-- `docs/**/*.rst`
-- `docs/**/*.md`
-- `docs/**/*.py`
+- `src/`, such as the Sass and JavaScript in `src/pydata_sphinx_theme/assets/`
+- `docs/`
 
 will cause the development server to do the following:
 
