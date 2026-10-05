@@ -34,13 +34,12 @@
   }
 }
 
-// Below the breakpoint the sidebar element itself is parked off screen and
-// hidden. What the reader sees as the drawer is the dialog, styled further down.
+// Below the breakpoint the sidebar element itself is hidden. What the reader
+// sees as the drawer is the dialog, styled further down.
 .bd-sidebar-primary {
   @include media-breakpoint-down($breakpoint-sidebar-primary) {
     @include drawer-shape("left");
 
-    margin-left: -75%;
     visibility: hidden;
   }
 }
@@ -49,7 +48,6 @@
   @include media-breakpoint-down($breakpoint-sidebar-secondary) {
     @include drawer-shape("right");
 
-    margin-right: -75%;
     visibility: hidden;
   }
 }
