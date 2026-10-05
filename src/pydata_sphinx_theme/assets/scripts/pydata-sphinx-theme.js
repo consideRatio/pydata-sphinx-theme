@@ -828,38 +828,15 @@ function setupMobileSidebarKeyboardHandlers() {
     });
   };
 
-  // A drawer is one sidebar, the dialog its content moves into while it is
-  // open, the button that opens it, and the Bootstrap breakpoint above which
-  // the sidebar is a column instead. A page can leave a sidebar out
-  // (remove_sidebar_secondary, or nothing to put in it), and then its
-  // dialog and toggle are not rendered either, so skip that drawer.
-  const drawers = [
-    {
-      toggleButton: primaryToggle,
-      dialog: primaryDialog,
-      sidebar: primarySidebar,
-      breakpoint: "lg",
-    },
-    {
-      toggleButton: secondaryToggle,
-      dialog: secondaryDialog,
-      sidebar: secondarySidebar,
-      breakpoint: "xl",
-    },
-  ].filter(
-    ({ toggleButton, dialog, sidebar }) => toggleButton && dialog && sidebar,
-  );
-
-  // Bootstrap 5.3 publishes its breakpoints as custom properties on :root.
-  // Without them the query is invalid and never matches, so a drawer left
-  // open across a resize just stays open, as it did before.
-  const breakpointWidth = (name) =>
-    getComputedStyle(document.documentElement)
-      .getPropertyValue(`--bs-breakpoint-${name}`)
-      .trim();
-
   // Hook up the ways to open and close the dialog
-  drawers.forEach(({ toggleButton, dialog, sidebar, breakpoint }) => {
+  [
+    [primaryToggle, primaryDialog, primarySidebar],
+    [secondaryToggle, secondaryDialog, secondarySidebar],
+  ].forEach(([toggleButton, dialog, sidebar]) => {
+    if (!toggleButton || !dialog || !sidebar) {
+      return;
+    }
+
     // Clicking the button can only open the sidebar, not close it.
     // Clicking the button is also the *only* way to open the sidebar.
     toggleButton.addEventListener("click", (event) => {
@@ -867,7 +844,7 @@ function setupMobileSidebarKeyboardHandlers() {
       event.stopPropagation();
 
       // When we open the dialog, we cut and paste the nodes and classes from
-      // the widescreen sidebar into the dialog.
+      // the widescreen sidebar into the dialog
       cutAndPasteNodesAndClasses(sidebar, dialog);
 
       dialog.showModal();
@@ -888,19 +865,18 @@ function setupMobileSidebarKeyboardHandlers() {
       }
     });
 
-    // When the window grows wide enough for the sidebar to be a column, an
-    // open drawer has nothing to show, so close it. The media query fires
-    // once, when the breakpoint is crossed, and nothing runs otherwise. The
-    // reader did not press anything, so skip the slide-out: cancel the
-    // animations the close starts, backdrop included.
-    window
-      .matchMedia(`(min-width: ${breakpointWidth(breakpoint)})`)
-      .addEventListener("change", (event) => {
-        if (event.matches && dialog.open) {
-          dialog.close();
-          dialog.getAnimations({ subtree: true }).forEach((a) => a.cancel());
-        }
-      });
+    // Once the window is wide enough for the sidebar to be a column, the
+    // stylesheet hides the toggle, and an open drawer has nothing left to
+    // show, so close it. Hiding the toggle changes its size, so this runs when
+    // the breakpoint is crossed, not on every resize. The reader did not press
+    // anything, so skip the slide-out: cancel the animations the close
+    // starts, backdrop included.
+    new ResizeObserver(() => {
+      if (dialog.open && getComputedStyle(toggleButton).display === "none") {
+        dialog.close();
+        dialog.getAnimations({ subtree: true }).forEach((a) => a.cancel());
+      }
+    }).observe(toggleButton);
 
     // When the dialog is closed, move the nodes (and classes) back to their
     // original place. Wait for the slide-out (and the backdrop's fade, which
