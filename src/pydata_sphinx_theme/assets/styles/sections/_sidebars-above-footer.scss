@@ -1,0 +1,78 @@
+/**
+ * Keep the sticky sidebars in place when the footer scrolls into view.
+ *
+ * Each sidebar sticks below the header and is as tall as the rest of the
+ * window. The footer sits below the container the sidebars stick in, and a
+ * sticky box is kept inside that container, so as the footer scrolls into
+ * view it pushes the sidebars up the screen.
+ *
+ * Here, as the footer comes in:
+ *
+ * - a negative bottom margin stops the push: a sticky box is kept inside its
+ *   container by its margin box, which now ends a window's height higher;
+ * - each sidebar gets shorter by as much of the footer as is showing, so it,
+ *   and its scrollbar, end where the footer begins, and the primary
+ *   sidebar's end section (the Read the Docs ad, by default) rides up with
+ *   the footer;
+ * - the footer is painted over the sidebars.
+ *
+ * The height is computed on the main thread, so on a fast mouse-wheel scroll
+ * it can be a frame behind. The sidebar then reaches behind the footer for
+ * that frame, where the footer hides it. Nothing moves: without the push,
+ * the sidebar's position no longer depends on its height.
+ *
+ * Browsers without scroll-driven animations keep today's behaviour.
+ */
+
+// The farthest the footer can scroll into view. The margin must reach at
+// least this far up to rule out any push.
+$footer-entry: 100vh;
+
+// The height each sidebar starts from: the window below the header. The
+// animation runs over this distance and takes the height to 0, one pixel per
+// pixel of footer shown. A negative target height would be simpler, but
+// WebKit clamps it to 0 before interpolating and shrinks too slowly.
+$sidebar-height: calc(100vh - var(--pst-header-height));
+
+@mixin above-footer {
+  margin-bottom: calc(-1 * #{$footer-entry});
+  animation: pst-sidebar-above-footer linear both;
+  animation-timeline: --pst-footer;
+  animation-range: cover 0 cover $sidebar-height;
+}
+
+@supports (animation-timeline: --pst-footer) and (timeline-scope: --pst-footer) {
+  // The footer's view timeline: how far it has scrolled into view.
+  body {
+    timeline-scope: --pst-footer;
+  }
+
+  .bd-footer {
+    view-timeline: --pst-footer block;
+
+    // Over the sidebars, for the frames their height is behind the scroll.
+    position: relative;
+    z-index: 1;
+    background-color: var(--pst-color-background);
+  }
+
+  @keyframes pst-sidebar-above-footer {
+    to {
+      max-height: 0;
+    }
+  }
+
+  // Only while each sidebar is a column. Below its breakpoint it is a drawer,
+  // which the footer never reaches.
+  .bd-sidebar-primary {
+    @include media-breakpoint-up($breakpoint-sidebar-primary) {
+      @include above-footer;
+    }
+  }
+
+  .bd-sidebar-secondary {
+    @include media-breakpoint-up($breakpoint-sidebar-secondary) {
+      @include above-footer;
+    }
+  }
+}
