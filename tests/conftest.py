@@ -127,3 +127,55 @@ def url_base() -> Iterator[str]:
     """Start local server on built docs and return its URL as the base URL."""
     with _serve(docs_build_path) as url:
         yield url
+
+
+# External URLs the docs load at runtime, served from local copies instead
+_LOCAL_COPIES = {
+    # announcement banner
+    "https://raw.githubusercontent.com/pydata/pydata-sphinx-theme/main/docs/": (
+        repo_path / "docs"
+    ),
+    # version switcher, when not building a dev version
+    "https://pydata-sphinx-theme.readthedocs.io/en/latest/": docs_build_path,
+}
+
+# External URLs that are still reached, as they render content that is tested:
+# MathJax and the ipywidgets, which need require.js and load widget modules
+# (e.g. ipyleaflet) from jsdelivr
+_ALLOWED_URLS = (
+    "https://cdn.jsdelivr.net/npm/",
+    "https://cdnjs.cloudflare.com/ajax/libs/require.js/",
+)
+
+# HTTP requests to anything but the local test servers and the allowed URLs. A
+# regex rather than a function, so that Playwright only intercepts these.
+_EXTERNAL_URL = re.compile(
+    r"^(?=https?://)(?!http://127\.0\.0\.1[:/]|"
+    + "|".join(re.escape(url) for url in _ALLOWED_URLS)
+    + ")"
+)
+
+
+def _route_external(route) -> None:
+    url = route.request.url.split("?")[0].split("#")[0]
+    for prefix, directory in _LOCAL_COPIES.items():
+        if url.startswith(prefix):
+            path = directory / url.removeprefix(prefix)
+            if path.is_file():
+                route.fulfill(path=path)
+            else:
+                route.fulfill(status=404)
+            return
+    route.abort("blockedbyclient")
+
+
+@pytest.fixture
+def page(page):
+    """Playwright's page, with external requests blocked or served locally.
+
+    External requests make tests slow and flaky, as a single hanging request
+    (e.g. a placeholder image) delays the page's load event that page.goto
+    waits for.
+    """
+    page.route(_EXTERNAL_URL, _route_external)
+    return page
