@@ -92,12 +92,19 @@ def sphinx_build_factory(make_app: Callable, tmp_path: Path, request) -> Callabl
 
 
 class _HTTPServer(ThreadingHTTPServer):
-    # Browsers fire off dozens of parallel requests when loading a page, and
-    # SimpleHTTPRequestHandler speaks HTTP/1.0 so each one is a new connection.
-    # With the default listen backlog of 5, macOS resets and Windows refuses
-    # the overflowing connections (Linux makes the client retry instead), so
+    # Browsers fire off dozens of parallel requests when loading a page. With
+    # the default listen backlog of 5, macOS resets and Windows refuses the
+    # overflowing connections (Linux makes the client retry instead), so
     # assets randomly fail to load and tests flake.
     request_queue_size = 128
+
+
+class _HTTPRequestHandler(SimpleHTTPRequestHandler):
+    # The default, HTTP/1.0, closes the connection after every response, so a
+    # page load opens a new connection per asset, and any one of them failing
+    # leaves that asset unloaded. HTTP/1.1 keeps connections alive for reuse,
+    # so far fewer are opened.
+    protocol_version = "HTTP/1.1"
 
 
 @contextmanager
@@ -105,7 +112,7 @@ def _serve(directory: Path) -> Iterator[str]:
     """Serve a directory over HTTP and return the base URL."""
     # 127.0.0.1 rather than "" or "localhost": binding all interfaces makes
     # http.server reverse-resolve the hostname, which can take seconds.
-    handler = partial(SimpleHTTPRequestHandler, directory=str(directory))
+    handler = partial(_HTTPRequestHandler, directory=str(directory))
     server = _HTTPServer(("127.0.0.1", 0), handler)
     Thread(target=server.serve_forever, daemon=True).start()
     try:
