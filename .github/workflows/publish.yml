@@ -16,7 +16,7 @@ permissions:
   contents: read
 
 jobs:
-  # calls our general CI workflows (tests, coverage, profile, etc.)
+  # calls our general CI workflows (tests, coverage, etc.)
   tests:
     uses: ./.github/workflows/CI.yml
     # only run this workflow for pydata owned repositories (avoid forks)
