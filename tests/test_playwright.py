@@ -693,3 +693,43 @@ class TestSidebarDrawers:
             expect(primary_toggle).to_have_attribute("aria-expanded", "false")
 
         _check_test_site(self.site_name, site_path, check_toggle_state)
+
+
+def test_primary_sidebar_stays_above_footer(
+    sphinx_build_factory: Callable, page: Page, url_base: str
+) -> None:
+    """A short primary sidebar keeps its place as the footer scrolls into view.
+
+    The sidebar box is only as tall as its content, so a footer that doesn't reach
+    the content leaves it where it is instead of pushing it up under the header.
+    """
+    site_name = "sidebars"
+    site_path = _build_test_site(site_name, sphinx_build_factory=sphinx_build_factory)
+
+    def check_sidebar_stays_above_footer():
+        page.set_viewport_size({"width": 1280, "height": 720})
+        page.goto(
+            urljoin(url_base, f"playwright_tests/{site_name}/section1/index.html")
+        )
+        # A long article to scroll past, and a footer tall enough to reach into a
+        # window-tall sidebar but not into this short one
+        page.add_style_tag(
+            content=".bd-article { min-height: 3000px; } "
+            ".bd-footer { min-height: 300px; }"
+        )
+        page.evaluate("window.scrollTo(0, document.documentElement.scrollHeight)")
+
+        header = page.locator(".bd-header").bounding_box()
+        sidebar = page.locator("#pst-primary-sidebar").bounding_box()
+        main = page.locator(".bd-main").bounding_box()
+        footer = page.locator(".bd-footer").bounding_box()
+        assert header and sidebar and main and footer
+
+        assert sidebar["y"] == pytest.approx(header["y"] + header["height"], abs=1)
+        assert sidebar["y"] + sidebar["height"] <= footer["y"] + 1
+
+        # The divider is drawn by the main column, so it still reaches the footer
+        expect(page.locator(".bd-main")).to_have_css("border-left-width", "1px")
+        assert main["y"] + main["height"] == pytest.approx(footer["y"], abs=1)
+
+    _check_test_site(site_name, site_path, check_sidebar_stays_above_footer)
