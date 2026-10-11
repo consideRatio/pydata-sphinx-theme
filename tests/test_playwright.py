@@ -700,8 +700,9 @@ def test_primary_sidebar_stays_above_footer(
 ) -> None:
     """A short primary sidebar keeps its place as the footer scrolls into view.
 
-    The sidebar box is only as tall as its content, so a footer that doesn't reach
-    the content leaves it where it is instead of pushing it up under the header.
+    Without end items the sidebar box is only as tall as its content, so a footer
+    that doesn't reach the content leaves it where it is instead of pushing it up
+    under the header. The Read the Docs ad slot is rendered but empty here.
     """
     site_name = "sidebars"
     site_path = _build_test_site(site_name, sphinx_build_factory=sphinx_build_factory)
@@ -711,6 +712,7 @@ def test_primary_sidebar_stays_above_footer(
         page.goto(
             urljoin(url_base, f"playwright_tests/{site_name}/section1/index.html")
         )
+        expect(page.locator("#ethical-ad-placement")).to_be_attached()
         # A long article to scroll past, and a footer tall enough to reach into a
         # window-tall sidebar but not into this short one
         page.add_style_tag(
@@ -733,3 +735,32 @@ def test_primary_sidebar_stays_above_footer(
         assert main["y"] + main["height"] == pytest.approx(footer["y"], abs=1)
 
     _check_test_site(site_name, site_path, check_sidebar_stays_above_footer)
+
+
+def test_primary_sidebar_end_items_at_window_bottom(
+    sphinx_build_factory: Callable, page: Page, url_base: str
+) -> None:
+    """End items, e.g. a filled Read the Docs ad, sit at the bottom of the window."""
+    site_name = "sidebars"
+    site_path = _build_test_site(site_name, sphinx_build_factory=sphinx_build_factory)
+
+    def check_end_items_at_window_bottom():
+        page.set_viewport_size({"width": 1280, "height": 720})
+        page.goto(
+            urljoin(url_base, f"playwright_tests/{site_name}/section1/index.html")
+        )
+        page.add_style_tag(content=".bd-article { min-height: 3000px; }")
+        # What Read the Docs does to the ad slot
+        page.evaluate(
+            "document.getElementById('ethical-ad-placement')"
+            ".insertAdjacentHTML('beforeend', '<div style=\"height: 100px\">Ad</div>')"
+        )
+
+        sidebar = page.locator("#pst-primary-sidebar").bounding_box()
+        end_items = page.locator(".sidebar-primary-items__end").bounding_box()
+        assert sidebar and end_items
+        assert sidebar["y"] + sidebar["height"] == pytest.approx(720, abs=1)
+        # The end items keep their bottom margin to the sidebar's bottom padding
+        assert end_items["y"] + end_items["height"] > 720 - 50
+
+    _check_test_site(site_name, site_path, check_end_items_at_window_bottom)

@@ -30,11 +30,25 @@ $sidebar-padding-right: 1rem;
     --pst-sidebar-primary-width: 25%;
 
     width: var(--pst-sidebar-primary-width);
+  }
 
-    // As a flex item the sidebar would stretch to the full height of the row,
-    // leaving its sticky box no room to settle. Sized to its own content
-    // instead, it fits above the footer rather than being pushed up by it.
-    align-self: flex-start;
+  // As a flex item the sidebar stretches to the full height of the row, so its
+  // sticky box is window-tall and the footer pushes it up as it scrolls into
+  // view. End items (e.g. the Read the Docs ad) need that height to sit at the
+  // bottom of the window. Without any, the sidebar is sized to its content and
+  // only moves once the footer reaches it. The ad slot is always rendered but
+  // only filled on Read the Docs, so an empty one doesn't count.
+  &:not(
+    :has(
+      .sidebar-primary-items__end
+        > .sidebar-primary-item
+        > :not(#ethical-ad-placement),
+      #ethical-ad-placement > *
+    )
+  ) {
+    @include media-breakpoint-up($breakpoint-sidebar-primary) {
+      align-self: flex-start;
+    }
   }
 
   // Borders padding and whitespace
@@ -47,7 +61,8 @@ $sidebar-padding-right: 1rem;
   @include media-breakpoint-up($breakpoint-sidebar-primary) {
     font-size: var(--pst-sidebar-font-size);
 
-    // A content-sized box would cut the divider short, so `.bd-main` draws it.
+    // A content-sized box (see above) would cut the divider short, so
+    // `.bd-main` draws it.
     border-right: 0;
   }
 
