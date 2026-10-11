@@ -32,6 +32,25 @@ $sidebar-padding-right: 1rem;
     width: var(--pst-sidebar-primary-width);
   }
 
+  // As a flex item the sidebar stretches to the full height of the row, so its
+  // sticky box is window-tall and the footer pushes it up as it scrolls into
+  // view. End items (e.g. the Read the Docs ad) need that height to sit at the
+  // bottom of the window. Without any, the sidebar is sized to its content and
+  // only moves once the footer reaches it. The ad slot is always rendered but
+  // only filled on Read the Docs, so an empty one doesn't count.
+  &:not(
+    :has(
+      .sidebar-primary-items__end
+        > .sidebar-primary-item
+        > :not(#ethical-ad-placement),
+      #ethical-ad-placement > *
+    )
+  ) {
+    @include media-breakpoint-up($breakpoint-sidebar-primary) {
+      align-self: flex-start;
+    }
+  }
+
   // Borders padding and whitespace
   padding: $sidebar-padding-right;
   border-right: 1px solid var(--pst-color-border);
@@ -41,6 +60,10 @@ $sidebar-padding-right: 1rem;
 
   @include media-breakpoint-up($breakpoint-sidebar-primary) {
     font-size: var(--pst-sidebar-font-size);
+
+    // A content-sized box (see above) would cut the divider short, so
+    // `.bd-main` draws it.
+    border-right: 0;
   }
 
   :focus-visible {
@@ -231,6 +254,14 @@ $sidebar-padding-right: 1rem;
         }
       }
     }
+  }
+}
+
+// The primary sidebar's divider. The column beside it spans the full height of
+// the row, and its edge follows the sidebar's width as it collapses.
+.bd-sidebar-primary:not(.hide-on-wide, .no-sidebar) + .bd-main {
+  @include media-breakpoint-up($breakpoint-sidebar-primary) {
+    border-left: 1px solid var(--pst-color-border);
   }
 }
 
