@@ -3,7 +3,7 @@
   {% set src = sourcename.split('.') %}
   <div class="tocsection editthispage">
     <a href="{{ get_edit_provider_and_url()[1] }}">
-      <i class="fa-solid fa-pencil"></i>
+      <i class="fa-solid fa-pencil" aria-hidden="true"></i>
       {% set provider = get_edit_provider_and_url()[0] %}
       {% block edit_this_page_text %}
         {% if provider %}

@@ -782,7 +782,11 @@ def add_collapse_checkboxes(soup: BeautifulSoup) -> None:
                 "role": "presentation",
             },
         )
-        span.append(soup.new_tag("i", attrs={"class": "fa-solid fa-chevron-down"}))
+        span.append(
+            soup.new_tag(
+                "i", attrs={"class": "fa-solid fa-chevron-down", "aria-hidden": "true"}
+            )
+        )
         summary.append(span)
 
         # Prepend section heading (if there is one) to <summary>

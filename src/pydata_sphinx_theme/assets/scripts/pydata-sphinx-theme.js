@@ -743,6 +743,7 @@ function showVersionWarningBanner(data) {
   const close_x = document.createElement("i");
   close_btn.append(close_x);
   close_x.classList = "fa-solid fa-xmark";
+  close_x.setAttribute("aria-hidden", "true");
   close_btn.onclick = DismissBannerAndStorePref;
   // add the version-dependent text
   inner.innerText = "This is documentation for ";
@@ -1031,6 +1032,7 @@ async function setupAnnouncementBanner() {
   const close_x = document.createElement("i");
   close_btn.append(close_x);
   close_x.classList = "fa-solid fa-xmark";
+  close_x.setAttribute("aria-hidden", "true");
   close_btn.onclick = DismissAnnouncementBannerAndStorePref;
   banner.append(close_btn);
 }
